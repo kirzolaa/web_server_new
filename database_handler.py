@@ -4,6 +4,7 @@ import time
 from functools import wraps
 from flask import request, jsonify, session, redirect, url_for, flash
 from database import db
+import bcrypt
 
 class AuthHandler:
     def __init__(self):
@@ -67,31 +68,15 @@ class AuthHandler:
         return secrets.token_urlsafe(32)
     
     def hash_password(self, password):
-        """Hash a password for storage
-        
-        Args:
-            password (str): The password to hash
-            
-        Returns:
-            str: The hashed password
-        """
-        import bcrypt
-        # Generate a salt and hash the password
-        salt = bcrypt.gensalt()
-        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
-        return hashed.decode('utf-8')
-    
+        """Hash a password using bcrypt"""
+        try:
+            return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        except Exception as e:
+            print(f"Error hashing password: {str(e)}")
+            return None
+
     def verify_password(self, stored_password, provided_password):
-        """Verify a password against its hash
-        
-        Args:
-            stored_password (str): The stored hashed password
-            provided_password (str): The password to verify
-            
-        Returns:
-            bool: True if the password matches, False otherwise
-        """
-        import bcrypt
+        """Verify a password against its bcrypt hash"""
         try:
             return bcrypt.checkpw(provided_password.encode('utf-8'), stored_password.encode('utf-8'))
         except Exception as e:
@@ -287,6 +272,9 @@ class AuthHandler:
         if not user_id:
             return False
         return True
+    
+    def check_auth(self):
+        return 'user_id' in session
     
     def reset_user_password(self, user_id, new_password):
         """

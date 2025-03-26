@@ -7,6 +7,10 @@ from datetime import datetime
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+import bcrypt
+from flask import Flask, jsonify, session
+
+app = Flask(__name__)
 
 """
 Database schema for reference:
@@ -109,59 +113,44 @@ def _decrypt_sensitive_data(encrypted_data, key=ENCRYPTION_KEY):
 
 
 def generate_api_key(db_connection, user_id):
-    """Generate a new API key for a user
+    """Generate a new API key for a user"""
+    import bcrypt
+
+    # Generate API key components
+    try:
+        with open('api_key_id.json', 'r') as f:
+            api_key_id = json.load(f)['api_key_id']
+    except FileNotFoundError:
+        api_key_id = '00001'
     
-    Args:
-        db_connection: SQLite database connection
-        user_id: ID of the user to generate the key for
-        
-    Returns:
-        dict: Dictionary containing the API key, secret, and ID
-    """
-    api_key_id = str(uuid.uuid4())
+    api_key_id = str(int(api_key_id) + 1).zfill(5)
+    
+    with open('api_key_id.json', 'w') as f:
+        json.dump({'api_key_id': api_key_id}, f)
     api_key = secrets.token_urlsafe(32)
     api_secret = secrets.token_urlsafe(64)
-    api_id = str(uuid.uuid4())
-    now = datetime.now().isoformat()
-    
-    # Create a cursor from the connection
+
+    # Hash the API secret
+    hashed_secret = bcrypt.hashpw(api_secret.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    # Store in database
     cursor = db_connection.cursor()
-    
-    try:
-        # Encrypt the API secret before storing
-        encrypted_secret = _encrypt_sensitive_data(api_secret)
-        
-        # Insert the new API key into the database
-        cursor.execute('''
-        INSERT INTO api_keys (id, user_id, api_key, api_secret, api_id, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-        ''', (api_key_id, user_id, api_key, encrypted_secret, api_id, now))
-        
-        # Commit the transaction
-        db_connection.commit()
-        
-        return {
-            'api_key': api_key,
-            'api_secret': api_secret,  # Return the unencrypted secret to the user once
-            'api_id': api_id
-        }
-    except sqlite3.Error as e:
-        # Rollback in case of error
-        db_connection.rollback()
-        print(f"Database error: {str(e)}")
-        raise e
+    cursor.execute('''
+        INSERT INTO api_keys (id, user_id, api_key, api_secret, api_id, created_at, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (api_key_id, user_id, api_key, hashed_secret, api_key_id, datetime.now().isoformat(), 'Active'))
+
+    db_connection.commit()
+
+    return {
+        'api_key': api_key,
+        'api_secret': api_secret,
+        'api_id': api_key_id
+    }
 
 
 def get_user_api_keys(db_connection, user_id):
-    """Get all API keys for a user
-    
-    Args:
-        db_connection: SQLite database connection
-        user_id: ID of the user to get keys for
-        
-    Returns:
-        list: List of API keys for the user
-    """
+    """Get all API keys for a user"""
     cursor = db_connection.cursor()
     
     try:
@@ -187,16 +176,7 @@ def get_user_api_keys(db_connection, user_id):
 
 
 def get_api_secret(db_connection, api_key_id, user_id):
-    """Get the API secret for a specific API key
-    
-    Args:
-        db_connection: SQLite database connection
-        api_key_id: ID of the API key to get the secret for
-        user_id: ID of the user who owns the key (for security)
-        
-    Returns:
-        str: Decrypted API secret if found, None otherwise
-    """
+    """Get the API secret for a specific API key"""
     cursor = db_connection.cursor()
     
     try:
@@ -221,16 +201,7 @@ def get_api_secret(db_connection, api_key_id, user_id):
 
 
 def delete_api_key(db_connection, api_key_id, user_id):
-    """Delete an API key
-    
-    Args:
-        db_connection: SQLite database connection
-        api_key_id: ID of the API key to delete
-        user_id: ID of the user who owns the key (for security)
-        
-    Returns:
-        bool: True if the key was deleted, False otherwise
-    """
+    """Delete an API key"""
     cursor = db_connection.cursor()
     
     try:
@@ -271,6 +242,19 @@ def delete_api_key(db_connection, api_key_id, user_id):
         return False
 
 
+@app.route('/api/generate-key', methods=['POST'])
+def generate_key():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+    
+    user_id = session['user_id']
+    api_key = generate_api_key(auth_handler.db.conn, user_id)
+    
+    if api_key:
+        return jsonify({'success': True, 'api_key': api_key})
+    return jsonify({'success': False, 'message': 'Failed to generate API key'}), 500
+
+
 if __name__ == "__main__":
     # This is just for testing purposes
     conn = sqlite3.connect('test_database.db')
@@ -285,7 +269,8 @@ if __name__ == "__main__":
             api_key TEXT NOT NULL,
             api_secret TEXT NOT NULL,
             api_id TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            created_at TEXT NOT NULL,
+            status TEXT NOT NULL
         )
         ''')
         

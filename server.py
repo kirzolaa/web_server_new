@@ -11,6 +11,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'ai-agency-server', 'scr
 from email_handler.email_handler import EmailHandler
 # Import the API key generation module
 from api_key_generation import get_user_api_keys, delete_api_key, get_api_secret
+import bcrypt
+import sqlite3
 
 app = Flask(__name__, template_folder='templates')
 app.secret_key = os.urandom(24)  # For secure session management
@@ -79,7 +81,7 @@ def register():
         bio = data.get('bio')
         role = data.get('role', 'Basic User')  # Default to Basic User if not specified
         admin_password = data.get('admin_password', '')
-        
+
         # Check admin password for Admin and Medium Admin roles
         if role in ['Admin', 'Medium Admin']:
             if admin_password != '1137M$@&#':
@@ -91,24 +93,24 @@ def register():
         if 'profile_pic' in request.files:
             file = request.files['profile_pic']
             if file and file.filename and allowed_file(file.filename):
-                # Read the file data and convert to base64
                 file_data = file.read()
                 encoded_image = base64.b64encode(file_data).decode('utf-8')
-                # Create a data URL with the appropriate MIME type
-                mime_type = file.content_type or 'image/jpeg'  # Default to jpeg if type not available
-                profile_pic_data = f"data:{mime_type};base64,{encoded_image}"
-        
-        # Add role and profile picture to user data
+                profile_pic_data = f"data:{file.content_type};base64,{encoded_image}"
+
+        # Hash the password
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+        # Register user
         result = auth_handler.register_user(
-            username, 
-            password, 
-            email, 
-            full_name, 
-            bio, 
+            username,
+            hashed_password,
+            email,
+            full_name,
+            bio,
             roles=[role],
             profile_pic=profile_pic_data
         )
-        
+
         if result['success']:
             # Set session variables to log the user in automatically
             session['user_id'] = result['user_id']
@@ -171,7 +173,7 @@ def users():
     
     return render_template('users.html', users=users_list, permissions=permissions)
 
-@app.route('/api/generate_api_key', methods=['POST'])
+@app.route('/api/generate-key', methods=['POST'])
 @login_required
 def generate_api_key():
     user_id = session.get('user_id')
@@ -185,6 +187,7 @@ def generate_api_key():
     })
 
 @app.route('/api_keys')
+@login_required
 def api_keys():
     """Render the API keys page"""
     # Check if user is logged in
@@ -205,6 +208,7 @@ def api_keys():
     keys = auth_handler.db.get_user_api_keys(user_id)
     
     return render_template('api_keys.html', user=user, keys=keys, permissions=permissions)
+
 
 @app.route('/api/keys', methods=['GET'])
 def get_keys():
@@ -248,12 +252,10 @@ def delete_key(key_id):
     else:
         return jsonify({'success': False, 'message': 'Failed to delete API key'}), 400
 
-@app.route('/api/auth/check', methods=['GET'])
+@app.route('/api/check-auth', methods=['GET'])
 def check_auth():
     """Check if user is authenticated"""
-    if 'user_id' in session:
-        return jsonify({'authenticated': True})
-    return jsonify({'authenticated': False})
+    return jsonify({'authenticated': auth_handler.check_auth()})
 
 @app.route('/api/profile', methods=['POST'])
 def update_profile():
@@ -318,7 +320,7 @@ def update_username():
         
         # Verify password
         user = auth_handler.db.get_user(user_id)
-        if not auth_handler.verify_password(data['password'], user['password_hash']):
+        if not bcrypt.checkpw(data['password'].encode('utf-8'), user['password_hash']):
             return jsonify({'success': False, 'message': 'Invalid password'})
         
         # Check if username is already taken
@@ -349,25 +351,19 @@ def update_password():
         
         # Verify current password
         user = auth_handler.db.get_user(user_id)
-        if not auth_handler.verify_password(data['current_password'], user['password_hash']):
+        if not bcrypt.checkpw(data['current_password'].encode('utf-8'), user['password_hash']):
             return jsonify({'success': False, 'message': 'Current password is incorrect'})
         
         # Update password
-        password_hash = auth_handler.hash_password(data['new_password'])
+        password_hash = bcrypt.hashpw(data['new_password'].encode('utf-8'), bcrypt.gensalt())
         auth_handler.db.update_user(user_id, {'password_hash': password_hash})
         
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/password-recovery', methods=['GET'])
-def password_recovery_form():
-    """Render the password recovery form"""
-    return render_template('password_recovery.html')
-
 @app.route('/recover-password', methods=['POST'])
 def recover_password():
-    """Process password recovery request"""
     if request.method == 'POST':
         email = request.form.get('email')
         
@@ -381,8 +377,16 @@ def recover_password():
         # Generate a new random password
         new_password = generate_secure_password()
         
-        # Update the user's password in the database
-        auth_handler.reset_user_password(user['id'], new_password)
+        # Hash the new password
+        hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt())
+        
+        # Update password in database
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+        cursor.execute('UPDATE users SET password = ? WHERE id = ?', 
+                      (hashed.decode('utf-8'), user['id']))
+        conn.commit()
+        conn.close()
         
         # Send recovery email with the new password
         email_sent = email_handler.send_password_recovery_email(
@@ -787,10 +791,13 @@ def create_user():
     # Create role data
     role = {'name': role_name}
     
+    # Hash the password
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
     # Register the user
     result = auth_handler.register_user(
         username, 
-        password, 
+        hashed_password, 
         email, 
         full_name, 
         bio=None, 
@@ -862,7 +869,7 @@ def update_user(username):
     # Update password if provided
     if 'password' in data and data['password']:
         # Hash the password
-        hashed_password = auth_handler.hash_password(data['password'])
+        hashed_password = bcrypt.hashpw(data['password'].encode('utf-8'), bcrypt.gensalt())
         update_data['password'] = hashed_password
     
     # Update the user
@@ -1032,42 +1039,68 @@ def get_user_api(username):
     
     return jsonify({'success': True, 'user': user_data})
 
-@app.route('/api/verify-password', methods=['POST'])
+@app.route('/api/verify-password', methods=['POST']) #kette kell majd bontani, mert ez így egy szar xd: profile/username/apikeySecretre is kell, hogy hanalhato legyen
 def verify_password():
     """Verify user password and retrieve API secret"""
     # Check if user is logged in
     if 'user_id' not in session:
         return jsonify({'success': False, 'message': 'Authentication required'}), 401
+    import bcrypt
+    def verify_password(stored_password, provided_password):
+        """Verify a password against its bcrypt hash"""
+        try:
+            # Convert both inputs to bytes
+            return bcrypt.checkpw(provided_password.encode('utf-8'), stored_password.encode('utf-8'))
+        except Exception as e:
+            print(f"Error verifying password: {str(e)}")
+            return False
     
     # Get request data
-    data = request.form
-    password = data.get('password')
-    key_id = data.get('key_id')
+    data = request.json
+    password = data.get('password', None)
+    key_id = data.get('key_id', None)
+    username = data.get('username', None)
+    print(f"Debug: Password: {password}, Key ID: {key_id}, Username: {username}")
     
-    if not password or not key_id:
-        return jsonify({'success': False, 'message': 'Password and key ID are required'}), 400
+    
+    if not password or not key_id and not username:
+        return jsonify({'success': False, 'message': 'Password and key ID or username are required'}), 400
     
     # Get user data
-    user_id = session['user_id']
-    user = auth_handler.db.get_user(user_id)
+    if key_id:
+        user_id = session['user_id']
+        user = auth_handler.db.get_user(user_id)
+    elif username:
+        user = auth_handler.db.get_user_by_username(username)
     
     if not user:
         return jsonify({'success': False, 'message': 'User not found'}), 404
     
     # Verify password
-    if not auth_handler.db._verify_password(user['password'], password, user['password_salt']):
+    if not verify_password(user['password'], password):
+        print(f"Debug: Password verification failed for user {user['username']}")
         return jsonify({'success': False, 'message': 'Incorrect password'}), 401
     
-    # Get API secret
-    api_secret = get_api_secret(auth_handler.db.conn, key_id, user_id)
+    if key_id:
+        # Get API secret
+        api_secret = get_api_secret(auth_handler.db.conn, key_id, user_id)
+        
+        if not api_secret:
+            return jsonify({'success': False, 'message': 'API key not found or does not belong to you'}), 404
+        
+        print(f"Debug: API Secret: {api_secret}")
     
-    if not api_secret:
-        return jsonify({'success': False, 'message': 'API key not found or does not belong to you'}), 404
-    
-    return jsonify({
-        'success': True,
-        'api_secret': api_secret
-    })
+        return jsonify({
+            'success': True,
+            'api_secret': api_secret
+        })
+    elif username:
+        return jsonify({
+            'success': True
+        })
 
 if __name__ == '__main__':
+    #kill all python processes
+    #os.system('taskkill /F /IM python.exe')
+    
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -12,6 +12,7 @@ from datetime import datetime
 import logging
 import threading
 import time
+import bcrypt
 
 # Thread-local storage for database connections
 _thread_local = threading.local()
@@ -58,32 +59,21 @@ class Database:
         self.conn = _thread_local.conn
         self.cursor = _thread_local.cursor
     
-    def _hash_password(self, password, salt=None):
-        """Hash a password with a salt using PBKDF2"""
-        if salt is None:
-            salt = secrets.token_bytes(16)
-        # Use a strong key derivation function
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=100000,
-        )
-        hashed_password = kdf.derive(password.encode())
-        return base64.b64encode(hashed_password).decode('utf-8'), base64.b64encode(salt).decode('utf-8')
-    
-    def _verify_password(self, stored_password, provided_password, salt):
-        """Verify a password against its hash"""
-        salt = base64.b64decode(salt)
-        kdf = PBKDF2HMAC(
-            algorithm=hashes.SHA256(),
-            length=32,
-            salt=salt,
-            iterations=100000,
-        )
-        provided_hash = kdf.derive(provided_password.encode())
-        stored_hash = base64.b64decode(stored_password)
-        return provided_hash == stored_hash
+    def _hash_password(self, password):
+        """Hash a password using bcrypt"""
+        try:
+            return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        except Exception as e:
+            print(f"Error hashing password: {str(e)}")
+            return None
+
+    def _verify_password(self, stored_password, provided_password):
+        """Verify a password against its bcrypt hash"""
+        try:
+            return bcrypt.checkpw(provided_password.encode('utf-8'), stored_password.encode('utf-8'))
+        except Exception as e:
+            print(f"Error verifying password: {str(e)}")
+            return False
     
     def _encrypt_sensitive_data(self, data):
         """Encrypt sensitive data"""
@@ -106,7 +96,6 @@ class Database:
                 id TEXT PRIMARY KEY,
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
-                password_salt TEXT NOT NULL,
                 full_name TEXT,
                 email TEXT UNIQUE NOT NULL,
                 bio TEXT,
@@ -246,14 +235,14 @@ class Database:
     def create_user(self, username, password, email, full_name=None, bio=None, profile_pic=None, roles=None):
         """Create a new user with secure password hashing"""
         user_id = str(uuid.uuid4())
-        hashed_password, salt = self._hash_password(password)
+        hashed_password = self._hash_password(password)
         now = datetime.now().isoformat()
         
         try:
             self.cursor.execute('''
-            INSERT INTO users (id, username, password, password_salt, full_name, email, bio, profile_pic, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, username, hashed_password, salt, full_name, email, bio, profile_pic, now, now))
+            INSERT INTO users (id, username, password, full_name, email, bio, profile_pic, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, username, hashed_password, full_name, email, bio, profile_pic, now, now))
             
             # Add user roles if provided
             if roles:
@@ -282,15 +271,15 @@ class Database:
     def authenticate_user(self, username, password):
         """Authenticate a user by username and password"""
         self.cursor.execute('''
-        SELECT id, password, password_salt FROM users WHERE username = ?
+        SELECT id, password FROM users WHERE username = ?
         ''', (username,))
         
         result = self.cursor.fetchone()
         if not result:
             return None
         
-        user_id, stored_password, salt = result
-        if self._verify_password(stored_password, password, salt):
+        user_id, stored_password = result
+        if self._verify_password(stored_password, password):
             return user_id
         return None
     
@@ -378,14 +367,14 @@ class Database:
         """Update a user's password"""
         try:
             # Hash the new password
-            hashed_password, salt = self._hash_password(new_password)
+            hashed_password = self._hash_password(new_password)
             now = datetime.now().isoformat()
             
             self.cursor.execute('''
             UPDATE users 
-            SET password = ?, password_salt = ?, updated_at = ? 
+            SET password = ?, updated_at = ? 
             WHERE id = ?
-            ''', (hashed_password, salt, now, user_id))
+            ''', (hashed_password, now, user_id))
             
             self.conn.commit()
             return True
