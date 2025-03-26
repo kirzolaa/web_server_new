@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agency - Welcome</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .hero {
+            background-color: #6c757d;
+            color: white;
+            padding: 5rem 0;
+            margin-bottom: 3rem;
+        }
+        .feature-card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            height: 100%;
+            padding: 2rem;
+            text-align: center;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            padding: 0.5rem 1.5rem;
+        }
+        .btn-outline-light {
+            border-color: white;
+            color: white;
+        }
+        .btn-outline-light:hover {
+            background-color: white;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <!-- Hero Section -->
+    <div class="hero">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold mb-4">Welcome to AI Agency</h1>
+            <p class="lead mb-5">A powerful platform for managing AI services and resources</p>
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                <a href="/login" class="btn btn-primary btn-lg px-4 gap-3">Login</a>
+                <a href="/register" class="btn btn-outline-light btn-lg px-4">Register</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="container py-5">
+        <div class="row mb-5 text-center">
+            <div class="col">
+                <h2 class="fw-bold">Key Features</h2>
+                <p class="text-muted">Discover what AI Agency can do for you</p>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="bi bi-shield-lock feature-icon text-primary"></i>
+                    <h3>Role Management</h3>
+                    <p class="text-muted">Create and manage user roles with customizable permissions</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="bi bi-key feature-icon text-success"></i>
+                    <h3>API Key Management</h3>
+                    <p class="text-muted">Generate and manage secure API keys for accessing services</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-card">
+                    <i class="bi bi-person-circle feature-icon text-danger"></i>
+                    <h3>User Profiles</h3>
+                    <p class="text-muted">Customize your profile and manage your account settings</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Call to Action -->
+    <div class="container py-5">
+        <div class="p-5 text-center bg-light rounded-3">
+            <h2 class="fw-bold">Ready to get started?</h2>
+            <p class="lead mb-4">Create an account today and explore all the features of AI Agency</p>
+            <a href="/register" class="btn btn-primary btn-lg px-4">Sign Up Now</a>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="py-5 bg-dark text-white">
+        <div class="container text-center">
+            <p class="mb-1">AI AGENCY Developer Team</p>
+            <p class="mb-0 text-muted">Bem tér Solutionz</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

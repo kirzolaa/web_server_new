@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agency Login & Register</title>
+    <link rel="stylesheet" href="/style/login_register.css">
+    <style>
+        /* Flash message styling */
+        .flash-messages {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto 20px;
+        }
+        .flash-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .flash-success {
+            background-color: rgba(76, 175, 80, 0.3);
+            color: #2e7d32;
+            border: 1px solid #2e7d32;
+        }
+        .flash-error {
+            background-color: rgba(244, 67, 54, 0.3);
+            color: #d32f2f;
+            border: 1px solid #d32f2f;
+        }
+        .flash-info {
+            background-color: rgba(33, 150, 243, 0.3);
+            color: #1976d2;
+            border: 1px solid #1976d2;
+        }
+        
+        /* Form styling */
+        .form-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .login-box, .register-box {
+            display: none;
+        }
+        .login-box.active, .register-box.active {
+            display: block;
+        }
+        .input-box {
+            margin-bottom: 20px;
+        }
+        .textarea-box {
+            margin-bottom: 20px;
+        }
+        .forgot-pass {
+            margin-bottom: 20px;
+        }
+        .signup-link {
+            margin-bottom: 20px;
+        }
+        .btn {
+            margin-bottom: 20px;
+        }
+        .error, .success {
+            margin-bottom: 20px;
+        }
+        .caps-warning {
+            margin-top: 5px;
+        }
+        .password-requirements {
+            margin-top: 5px;
+        }
+        .profile-picture-container {
+            margin-top: 5px;
+        }
+        .select-picture-btn {
+            margin-top: 5px;
+        }
+        #picturePreview {
+            margin-top: 5px;
+        }
+        
+        /* Added styles for message box */
+        .message-box {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        .message-container {
+            height: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="message-box">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+        
+        <div class="container">
+            <div class="animation-spans">
+                <!-- Animation spans will be added dynamically -->
+            </div>
+            
+            <div class="message-container">
+                <!-- This div is intentionally left empty as flash messages are now at the top right -->
+            </div>
+            
+            <div class="form-box">
+                <!-- Login Form -->
+                <div class="login-box active">
+                    <h2>Login</h2>
+                    <form action="/login" method="POST">
+                        <div class="input-box">
+                            <input type="text" id="loginUsername" name="username" required>
+                            <label>Username</label>
+                        </div>
+                        <div class="input-box">
+                            <input type="password" id="loginPassword" name="password" required>
+                            <label>Password</label>
+                            <div class="caps-warning" id="loginCapsWarning">Caps Lock is ON</div>
+                        </div>
+                        <div class="forgot-pass">
+                            <a href="/password-recovery" id="forgotPasswordLink">Forgot your password?</a>
+                        </div>
+                        <button type="submit" id="loginButton" class="btn">Login</button>
+                        <div id="loginError" class="error"></div>
+                        <div class="signup-link">
+                            <p>Don't have an account? <a href="#" class="toggle-form" data-target="register-box">Register</a></p>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Register Form -->
+                <div class="register-box">
+                    <h2>Register</h2>
+                    <form action="/register" method="POST" enctype="multipart/form-data">
+                        <div class="input-box">
+                            <input type="text" id="registerUsername" name="username" required>
+                            <label>Username</label>
+                        </div>
+                        <div class="input-box">
+                            <input type="text" id="registerName" name="full_name">
+                            <label>Full Name</label>
+                        </div>
+                        <div class="input-box">
+                            <input type="email" id="registerEmail" name="email" required>
+                            <label>Email</label>
+                        </div>
+                        <div class="input-box">
+                            <input type="password" id="registerPassword" name="password" required>
+                            <label>Password</label>
+                            <div class="password-requirements">
+                                Min 8 chars: 1 uppercase, 1 lowercase, 1 number, 1 special char
+                            </div>
+                            <div class="caps-warning" id="registerCapsWarning">Caps Lock is ON</div>
+                        </div>
+                        <div class="input-box textarea-box">
+                            <textarea id="registerBio" name="bio" rows="3"></textarea>
+                            <label>Bio (optional)</label>
+                        </div>
+                        <div class="input-box">
+                            <input type="text" class="hidden-input" id="profilePictureText">
+                            <label>Profile Picture (optional)</label>
+                            <div class="profile-picture-container">
+                                <input type="file" id="profilePicture" name="profile_pic" accept="image/*" style="display: none;">
+                                <button type="button" id="selectPictureBtn" class="select-picture-btn">Select Picture</button>
+                                <span id="selectedFileName">No file selected</span>
+                                <div id="picturePreview" class="picture-preview"></div>
+                            </div>
+                        </div>
+                        <div class="input-box">
+                            <input type="text" class="hidden-input" id="roleText">
+                            <label>Role</label>
+                            <select id="registerRole" name="role" onchange="checkAdminRole()">
+                                <option value="Basic User">Basic User</option>
+                                <option value="Social Media Handler">Social Media Handler</option>
+                                <option value="Medium Admin">Medium Admin</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                        </div>
+                        <div class="input-box" id="adminPasswordBox" style="display: none;">
+                            <input type="password" id="adminPassword" name="admin_password">
+                            <label>Admin Password</label>
+                            <div class="caps-warning" id="adminCapsWarning">Caps Lock is ON</div>
+                        </div>
+                        <button type="submit" id="registerButton" class="btn">Register</button>
+                        <div id="registerError" class="error"></div>
+                        <div id="registerSuccess" class="success"></div>
+                        <div class="signup-link">
+                            <p>Already have an account? <a href="#" class="toggle-form" data-target="login-box">Login</a></p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Password Recovery Modal -->
+            <div id="recoveryModal" class="recovery-modal hide">
+                <div class="recovery-content">
+                    <h3>Password Recovery</h3>
+                    <div class="input-box">
+                        <input type="email" id="recoveryEmail">
+                        <label>Email</label>
+                    </div>
+                    <div class="input-box">
+                        <input type="text" id="recoveryUsername">
+                        <label>Username</label>
+                    </div>
+                    <div class="recovery-buttons">
+                        <button id="recoverButton" class="btn" size="28">Send</button>
+                        <button id="cancelRecovery" class="btn secondary">Cancel</button>
+                    </div>
+                    <div id="recoveryMessage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add animation spans
+        const animationContainer = document.querySelector('.animation-spans');
+        for (let i = 0; i < 50; i++) {
+            const span = document.createElement('span');
+            span.style.setProperty('--i', i);
+            animationContainer.appendChild(span);
+        }
+
+        // Toggle between login and register forms
+        const toggleLinks = document.querySelectorAll('.toggle-form');
+        toggleLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = this.getAttribute('data-target');
+                
+                // Hide all form boxes
+                document.querySelectorAll('.login-box, .register-box').forEach(box => {
+                    box.classList.remove('active');
+                });
+                
+                // Show the target form box
+                document.querySelector('.' + target).classList.add('active');
+            });
+        });
+
+        // Forgot password link
+        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+        const recoveryModal = document.getElementById('recoveryModal');
+        const cancelRecovery = document.getElementById('cancelRecovery');
+        
+        if (forgotPasswordLink) {
+            forgotPasswordLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                recoveryModal.classList.remove('hide');
+            });
+        }
+        
+        if (cancelRecovery) {
+            cancelRecovery.addEventListener('click', function() {
+                recoveryModal.classList.add('hide');
+            });
+        }
+
+        // Profile picture selection
+        const selectPictureBtn = document.getElementById('selectPictureBtn');
+        const profilePicture = document.getElementById('profilePicture');
+        const selectedFileName = document.getElementById('selectedFileName');
+        const picturePreview = document.getElementById('picturePreview');
+        const profilePictureText = document.getElementById('profilePictureText');
+
+        // Set focus on the hidden input to trigger label animation
+        profilePictureText.focus();
+        profilePictureText.blur();
+
+        if (selectPictureBtn && profilePicture) {
+            selectPictureBtn.addEventListener('click', function() {
+                profilePicture.click();
+            });
+        }
+        
+        if (profilePicture && selectedFileName && picturePreview) {
+            profilePicture.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    selectedFileName.textContent = file.name;
+                    profilePictureText.value = file.name;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        // Ensure the background image is properly set with quotes
+                        picturePreview.style.backgroundImage = 'url("' + e.target.result + '")';
+                        // Make sure the element is visible
+                        picturePreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    selectedFileName.textContent = 'No file selected';
+                    picturePreview.style.backgroundImage = 'none';
+                    picturePreview.style.display = 'none';
+                }
+            });
+        }
+
+        // Role selection
+        const roleText = document.getElementById('roleText');
+        const registerRole = document.getElementById('registerRole');
+
+        // Set focus on the hidden input to trigger label animation
+        roleText.focus();
+        roleText.blur();
+
+        if (registerRole) {
+            registerRole.addEventListener('change', function() {
+                roleText.value = registerRole.options[registerRole.selectedIndex].text;
+            });
+        }
+
+        // Admin password box
+        const adminPasswordBox = document.getElementById('adminPasswordBox');
+        const registerRoleValue = document.getElementById('registerRole');
+
+        function checkAdminRole() {
+            if (registerRoleValue.value === 'Admin' || registerRoleValue.value === 'Medium Admin') {
+                adminPasswordBox.style.display = 'block';
+            } else {
+                adminPasswordBox.style.display = 'none';
+            }
+        }
+
+        // Caps lock detection
+        function detectCapsLock(event, warningElement) {
+            if (event.getModifierState('CapsLock')) {
+                warningElement.style.display = 'block';
+            } else {
+                warningElement.style.display = 'none';
+            }
+        }
+        
+        const loginPassword = document.getElementById('loginPassword');
+        const loginCapsWarning = document.getElementById('loginCapsWarning');
+        const registerPassword = document.getElementById('registerPassword');
+        const registerCapsWarning = document.getElementById('registerCapsWarning');
+        const adminPassword = document.getElementById('adminPassword');
+        const adminCapsWarning = document.getElementById('adminCapsWarning');
+        
+        if (loginPassword && loginCapsWarning) {
+            loginPassword.addEventListener('keyup', function(e) {
+                detectCapsLock(e, loginCapsWarning);
+            });
+        }
+        
+        if (registerPassword && registerCapsWarning) {
+            registerPassword.addEventListener('keyup', function(e) {
+                detectCapsLock(e, registerCapsWarning);
+            });
+        }
+        
+        if (adminPassword && adminCapsWarning) {
+            adminPassword.addEventListener('keyup', function(e) {
+                detectCapsLock(e, adminCapsWarning);
+            });
+        }
+        
+        // Auto-hide flash messages after 5 seconds
+        setTimeout(() => {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(message => {
+                message.style.opacity = '0';
+                setTimeout(() => {
+                    message.style.display = 'none';
+                }, 500);
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Keys - AI Agency</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            background-color: #6c757d;
+        }
+        .navbar-dark .navbar-nav .nav-link {
+            color: white;
+            font-weight: normal;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+        .navbar-dark .navbar-nav .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .navbar-dark .navbar-nav .nav-link.active {
+            color: white;
+            font-weight: 500;
+            border-bottom: 2px solid white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .api-key-list {
+            margin-top: 20px;
+        }
+        .api-key-item {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        .api-key-info {
+            flex-grow: 1;
+        }
+        .api-key {
+            font-family: monospace;
+            background-color: #e9ecef;
+            padding: 5px 10px;
+            border-radius: 3px;
+            word-break: break-all;
+        }
+        .api-key-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .api-key-date {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        .generate-btn {
+            background-color: #225C7F;
+            color: white;
+            margin-bottom: 20px;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .delete-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .copy-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .alert-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            max-width: 300px;
+        }
+        .api-secret-container {
+            background-color: #f8d7da;
+            border: 1px solid #f5c2c7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+        .api-secret-container p {
+            color: #842029;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        .api-secret {
+            font-family: monospace;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 3px;
+            word-break: break-all;
+            margin-bottom: 10px;
+        }
+        
+        /* Dropdown submenu styles */
+        .dropdown-submenu {
+            position: relative;
+        }
+        
+        .dropdown-submenu > .dropdown-menu {
+            top: 0;
+            left: 100%;
+            margin-top: -6px;
+            margin-left: -1px;
+            border-radius: 0 6px 6px 6px;
+        }
+        
+        .dropdown-submenu:hover > .dropdown-menu {
+            display: block;
+        }
+        
+        .dropdown-submenu > a:after {
+            display: block;
+            content: "";
+            float: right;
+            width: 0;
+            height: 0;
+            border-color: transparent;
+            border-style: solid;
+            border-width: 5px 0 5px 5px;
+            border-left-color: #ccc;
+            margin-top: 5px;
+            margin-right: -10px;
+        }
+        
+        .dropdown-submenu:hover > a:after {
+            border-left-color: #fff;
+        }
+
+        /* New styles for enhanced API key display */
+        .api-key-details {
+            background-color: #f1f8ff;
+            border: 1px solid #d1e5f9;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            display: none;
+        }
+        .detail-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        .detail-label {
+            font-weight: 500;
+            width: 150px;
+            color: #495057;
+        }
+        .detail-value {
+            font-family: monospace;
+            background-color: #e9ecef;
+            padding: 3px 8px;
+            border-radius: 3px;
+            flex-grow: 1;
+        }
+        .toggle-details-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        .password-modal {
+            display: none;
+            position: fixed;
+            z-index: 1060;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .password-modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 400px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .password-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .password-submit {
+            background-color: #225C7F;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            float: right;
+        }
+        .password-cancel {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            float: left;
+        }
+        .close-modal {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-modal:hover {
+            color: black;
+        }
+        .badge {
+            margin-left: 8px;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#" style="color: white; font-weight: bold;">AI Agency</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/profile">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/api_keys">API Keys</a>
+                    </li>
+                    {% if permissions and (permissions.manage_roles or permissions.all) %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/roles">Role Management</a>
+                    </li>
+                    {% endif %}
+                    {% if permissions and (permissions.manage_users or permissions.all) %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/users">User Management</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Generation</a>
+                        <ul class="dropdown-menu">
+                            <li class="dropdown-submenu">
+                                <a class="dropdown-item dropdown-toggle" href="#">Ideogram</a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="/generation/ideogram/describe">Describe</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/reframe">Reframe</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/upscale">Upscale</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" onclick="handleLogout()">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <h1>API Keys</h1>
+        <p class="lead">Manage your API keys for accessing the AI Agency API.</p>
+        
+        <button class="generate-btn" onclick="generateApiKey()">Generate New API Key</button>
+        
+        <div id="apiKeyList" class="api-key-list">
+            <!-- API keys will be displayed here -->
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="passwordModal" class="password-modal">
+        <div class="password-modal-content">
+            <span class="close-modal" onclick="closePasswordModal()">&times;</span>
+            <h4>Enter Your Password</h4>
+            <p>For security reasons, you need to enter your password to view the API secret.</p>
+            <input type="password" id="passwordInput" class="password-input" placeholder="Enter your password">
+            <div style="margin-top: 20px;">
+                <button class="password-cancel" onclick="closePasswordModal()">Cancel</button>
+                <button class="password-submit" id="passwordSubmit">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div class="alert-container" id="alertContainer"></div>
+
+    <!-- Bootstrap and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Check if user is authenticated
+        function checkAuthentication() {
+            $.ajax({
+                url: '/api/check-auth',
+                type: 'GET',
+                success: function(response) {
+                    if (!response.authenticated) {
+                        window.location.href = '/login';
+                    } else {
+                        loadApiKeys();
+                    }
+                },
+                error: function() {
+                    window.location.href = '/login';
+                }
+            });
+        }
+
+        // Load API keys
+        function loadApiKeys() {
+            $.ajax({
+                url: '/api/keys',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        displayApiKeys(response.keys);
+                    } else {
+                        showMessage(response.message || 'Failed to load API keys', 'danger');
+                    }
+                },
+                error: function() {
+                    showMessage('Failed to load API keys', 'danger');
+                }
+            });
+        }
+
+        // Generate new API key
+        function generateApiKey() {
+            $.ajax({
+                url: '/api/generate-key',
+                type: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        // Show the new API key and secret
+                        const apiKeyData = response.api_key;
+                        const apiKeyHtml = `
+                            <div class="api-secret-container">
+                                <p>Your new API key has been generated. Please save these details as the API secret will only be shown once.</p>
+                                <div>
+                                    <strong>API Key:</strong>
+                                    <div class="api-secret">${apiKeyData.api_key}</div>
+                                    <button class="copy-btn" onclick="copyApiKey('${apiKeyData.api_key}')">Copy</button>
+                                </div>
+                                <div style="margin-top: 10px;">
+                                    <strong>API Secret:</strong>
+                                    <div class="api-secret">${apiKeyData.api_secret}</div>
+                                    <button class="copy-btn" onclick="copyApiSecret('${apiKeyData.api_secret}')">Copy</button>
+                                </div>
+                            </div>
+                        `;
+                        $('#apiKeyList').prepend(apiKeyHtml);
+                        
+                        // Reload the API keys list
+                        loadApiKeys();
+                        
+                        showMessage('New API key generated successfully', 'success');
+                    } else {
+                        showMessage(response.message || 'Failed to generate API key', 'danger');
+                    }
+                },
+                error: function() {
+                    showMessage('Failed to generate API key', 'danger');
+                }
+            });
+        }
+
+        // Delete API key
+        function deleteApiKey(keyId) {
+            if (confirm('Are you sure you want to delete this API key? This action cannot be undone.')) {
+                $.ajax({
+                    url: `/api/keys/${keyId}`,
+                    type: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            // Remove the API key from the list
+                            $(`#api-key-${keyId}`).remove();
+                            showMessage('API key deleted successfully', 'success');
+                        } else {
+                            showMessage(response.message || 'Failed to delete API key', 'danger');
+                        }
+                    },
+                    error: function() {
+                        showMessage('Failed to delete API key', 'danger');
+                    }
+                });
+            }
+        }
+
+        // Display API keys
+        function displayApiKeys(keys) {
+            const apiKeyList = $('#apiKeyList');
+            apiKeyList.empty();
+            
+            if (keys.length === 0) {
+                apiKeyList.html('<p>No API keys found. Generate a new key to get started.</p>');
+                return;
+            }
+            
+            keys.forEach(function(key) {
+                const createdDate = new Date(key.created_at).toLocaleString();
+                const statusBadgeClass = key.status === 'Active' ? 'bg-success' : 'bg-secondary';
+                
+                // Format permissions list
+                const permissionsList = key.permissions ? key.permissions.join(', ') : 'Standard API access';
+                
+                const apiKeyHtml = `
+                    <div class="api-key-item" id="api-key-${key.id}">
+                        <div class="api-key-info">
+                            <div>
+                                <strong>API Key:</strong>
+                                <span class="api-key">${key.api_key}</span>
+                                <button class="copy-btn" onclick="copyApiKey('${key.api_key}')">Copy</button>
+                                <button class="toggle-details-btn" onclick="toggleDetails('${key.id}')">Details</button>
+                                <button class="btn btn-sm btn-info" onclick="showSecretPrompt('${key.id}')">View Secret</button>
+                            </div>
+                            <div class="api-key-date">Created: ${createdDate}</div>
+                            
+                            <!-- Detailed information (hidden by default) -->
+                            <div id="details-${key.id}" class="api-key-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Key ID:</span>
+                                    <span class="detail-value">${key.id}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">API ID:</span>
+                                    <span class="detail-value">${key.api_id || 'N/A'}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Created:</span>
+                                    <span class="detail-value">${createdDate}</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Status:</span>
+                                    <span class="detail-value">${key.status} <span class="badge ${statusBadgeClass}">${key.status}</span></span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Permissions:</span>
+                                    <span class="detail-value">${permissionsList}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="api-key-actions">
+                            <button class="delete-btn" onclick="deleteApiKey('${key.id}')">Delete</button>
+                        </div>
+                    </div>
+                `;
+                apiKeyList.append(apiKeyHtml);
+            });
+        }
+
+        // Toggle details section
+        function toggleDetails(keyId) {
+            const detailsSection = $(`#details-${keyId}`);
+            detailsSection.slideToggle();
+        }
+
+        // Show password prompt for viewing API secret
+        function showSecretPrompt(keyId) {
+            // Store the key ID to retrieve the secret later
+            $('#passwordSubmit').data('keyId', keyId);
+            $('#passwordInput').val('');
+            $('#passwordModal').show();
+        }
+
+        // Close password modal
+        function closePasswordModal() {
+            $('#passwordModal').hide();
+        }
+
+        // Copy API key to clipboard
+        function copyApiKey(key) {
+            navigator.clipboard.writeText(key).then(function() {
+                showMessage('API key copied to clipboard', 'success');
+            }, function() {
+                showMessage('Failed to copy API key', 'danger');
+            });
+        }
+
+        // Copy API secret to clipboard
+        function copyApiSecret(secret) {
+            navigator.clipboard.writeText(secret).then(function() {
+                showMessage('API secret copied to clipboard', 'success');
+            }, function() {
+                showMessage('Failed to copy API secret', 'danger');
+            });
+        }
+
+        // Show message
+        function showMessage(message, type) {
+            const alertContainer = $('#alertContainer');
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            alertContainer.append(alertHtml);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+        }
+
+        // Handle logout
+        function handleLogout() {
+            window.location.href = '/logout';
+        }
+
+        // Initialize
+        $(document).ready(function() {
+            // Check authentication first
+            checkAuthentication();
+            
+            // Setup password submission event
+            $('#passwordSubmit').on('click', function() {
+                const password = $('#passwordInput').val();
+                const keyId = $(this).data('keyId');
+                
+                if (!password) {
+                    showMessage('Please enter your password', 'warning');
+                    return;
+                }
+                
+                // Verify password and retrieve API secret
+                $.ajax({
+                    url: '/api/verify-password',
+                    type: 'POST',
+                    data: { password: password, key_id: keyId },
+                    success: function(response) {
+                        if (response.success) {
+                            closePasswordModal();
+                            
+                            // Display the secret in a modal or alert
+                            const secretHtml = `
+                                <div class="api-secret-container">
+                                    <p>API Secret (will not be shown again):</p>
+                                    <div class="api-secret">${response.api_secret}</div>
+                                    <button class="copy-btn" onclick="copyApiSecret('${response.api_secret}')">Copy</button>
+                                </div>
+                            `;
+                            
+                            // Insert after the key's element
+                            $(secretHtml).insertAfter(`#api-key-${keyId}`);
+                            
+                            showMessage('API secret retrieved successfully', 'success');
+                        } else {
+                            showMessage(response.message || 'Incorrect password', 'danger');
+                        }
+                    },
+                    error: function() {
+                        showMessage('Failed to verify password', 'danger');
+                    }
+                });
+            });
+            
+            // Allow pressing Enter in the password field
+            $('#passwordInput').on('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    $('#passwordSubmit').click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

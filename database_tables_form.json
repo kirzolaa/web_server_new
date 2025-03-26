@@ -1,0 +1,106 @@
+{
+    "users": {
+        "username": "string",
+        "full_name": "string",
+        "email": "string",
+        "bio": "string",
+        "role": [
+            {
+                "role": "admin",
+                "permissions": [
+                    "all",
+                    "manage_users",
+                    "manage_roles",
+                    "manage_content",
+                    "social_media",
+                    "prompting"
+                ]
+            },
+            {
+                "role": "medium_admin",
+                "permissions": [
+                    "view_users",
+                    "manage_content",
+                    "social_media",
+                    "prompting"
+                ]
+            },
+            {
+                "role": "social_media_handler",
+                "permissions": [
+                    "social_media",
+                    "prompting"
+                ]
+            },
+            {
+                "role": "basic_user",
+                "permissions": [
+                    "prompting"
+                ]
+            }
+        ],
+        "profile_pic": "string",
+        "api_keys": [
+            {
+                "api_key": "string",
+                "api_secret": "string",
+                "api_id": "string",
+                "status": "string",
+                "api_role_permissions": [
+                    {
+                        "role": "string",
+                        "permissions": [
+                            "string"
+                        ]
+                    }
+                ]
+            }
+        ],
+        "user_activity": [
+            {
+                "activity_type": "string",
+                "activity_details": [
+                    {
+                        "prompt": "string",
+                        "response": [
+                            "string"
+                        ],
+                        "prompt_timestamp": "string",
+                        "prompt_id": "string"
+                    }
+                ],
+                "activity_timestamp": "string",
+                "activity_id": "string"
+            }
+        ]
+    },
+    "role_permissions": {
+        "table_name": "role_permissions",
+        "columns": [
+            {
+                "name": "id",
+                "type": "INTEGER",
+                "constraints": "PRIMARY KEY AUTOINCREMENT"
+            },
+            {
+                "name": "role_id",
+                "type": "INTEGER",
+                "constraints": "NOT NULL"
+            },
+            {
+                "name": "permission",
+                "type": "TEXT",
+                "constraints": "NOT NULL"
+            }
+        ],
+        "foreign_keys": [
+            {
+                "column": "role_id",
+                "references": {
+                    "table": "roles",
+                    "column": "id"
+                }
+            }
+        ]
+    }
+}

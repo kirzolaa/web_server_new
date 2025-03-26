@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit User</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #e9ecef;
+            border-radius: 15px;
+            font-size: 14px;
+            color: #495057;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        .role-badge.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+        }
+        .avatar {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #6c757d;">
+        <div class="container">
+            <a class="navbar-brand" href="#" style="color: white; font-weight: bold;">AI Agency</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/profile">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api_keys">API Keys</a>
+                    </li>
+                    {% if permissions and (permissions.manage_roles or permissions.all) %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/roles">Role Management</a>
+                    </li>
+                    {% endif %}
+                    {% if permissions and (permissions.manage_users or permissions.all) %}
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/users">User Management</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <button class="btn btn-outline-light" onclick="window.location.href='/logout'">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Edit User</h1>
+            <div>
+                <a href="/users" class="btn btn-secondary me-2">
+                    <i class="bi bi-arrow-left"></i> Back to Users
+                </a>
+                <a href="/users/{{ user.username }}" class="btn btn-info">
+                    <i class="bi bi-eye"></i> View Profile
+                </a>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="card">
+                    <div class="card-body">
+                        <form id="editUserForm">
+                            <div class="text-center">
+                                <div class="profile-avatar">
+                                    {% if user.profile_pic %}
+                                    <div class="avatar" style="background-image: url('{{ user.profile_pic }}');"></div>
+                                    {% else %}
+                                    <div class="avatar">
+                                        <i class="bi bi-person-fill fs-3"></i>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mb-4">
+                                    <i class="bi bi-upload"></i> Change Avatar
+                                </button>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" value="{{ user.username }}" readonly>
+                                <small class="text-muted">Username cannot be changed</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" value="{{ user.email }}" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="fullName" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="fullName" value="{{ user.full_name if user.full_name else '' }}">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="bio" class="form-label">Bio</label>
+                                <textarea class="form-control" id="bio" rows="3">{{ user.bio if user.bio else '' }}</textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="password" class="form-label">New Password</label>
+                                <input type="password" class="form-control" id="password">
+                                <small class="text-muted">Leave blank to keep current password</small>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label">Roles</label>
+                                <div class="role-selection">
+                                    {% for role in all_roles %}
+                                    <div class="role-badge {% if role.name in user_roles|map(attribute='role') %}active{% endif %}" data-role="{{ role.name }}">
+                                        {{ role.name }}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="button" class="btn btn-danger me-md-2" id="deleteUserBtn">
+                                    <i class="bi bi-trash"></i> Delete User
+                                </button>
+                                <button type="button" class="btn btn-primary" id="saveUserBtn">
+                                    <i class="bi bi-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle role selection
+            const roleBadges = document.querySelectorAll('.role-badge');
+            const selectedRoles = new Set();
+            
+            // Initialize selected roles
+            roleBadges.forEach(badge => {
+                if (badge.classList.contains('active')) {
+                    selectedRoles.add(badge.getAttribute('data-role'));
+                }
+                
+                badge.addEventListener('click', function() {
+                    const role = this.getAttribute('data-role');
+                    
+                    if (this.classList.contains('active')) {
+                        this.classList.remove('active');
+                        selectedRoles.delete(role);
+                    } else {
+                        this.classList.add('active');
+                        selectedRoles.add(role);
+                    }
+                });
+            });
+            
+            // Save user changes
+            document.getElementById('saveUserBtn').addEventListener('click', function() {
+                const username = document.getElementById('username').value;
+                const email = document.getElementById('email').value;
+                const fullName = document.getElementById('fullName').value;
+                const bio = document.getElementById('bio').value;
+                const password = document.getElementById('password').value;
+                
+                // Validate email
+                if (!email) {
+                    alert('Email is required');
+                    return;
+                }
+                
+                // Prepare data for API call
+                const userData = {
+                    email: email,
+                    full_name: fullName,
+                    bio: bio
+                };
+                
+                if (password) {
+                    userData.password = password;
+                }
+                
+                // Update user details
+                fetch(`/api/users/${username}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update roles if needed
+                        updateUserRoles(username, selectedRoles).then(() => {
+                            alert('User updated successfully');
+                            window.location.href = `/users/${username}`;
+                        });
+                    } else {
+                        alert('Error updating user: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('An error occurred: ' + error);
+                });
+            });
+            
+            // Update user roles
+            async function updateUserRoles(username, selectedRoles) {
+                // Get current user roles
+                const response = await fetch(`/api/users/${username}`);
+                const userData = await response.json();
+                
+                if (!userData.success) {
+                    throw new Error('Failed to get user data');
+                }
+                
+                const user = userData.user;
+                const userId = user.id;
+                
+                // Get current roles from the DOM
+                const currentRoles = new Set();
+                document.querySelectorAll('.role-badge.active').forEach(badge => {
+                    if (!badge.classList.contains('clicked')) {
+                        currentRoles.add(badge.getAttribute('data-role'));
+                    }
+                });
+                
+                // Determine roles to add and remove
+                const rolesToAdd = Array.from(selectedRoles).filter(role => !currentRoles.has(role));
+                const rolesToRemove = Array.from(currentRoles).filter(role => !selectedRoles.has(role));
+                
+                // Add new roles
+                for (const role of rolesToAdd) {
+                    await fetch(`/api/users/${userId}/roles/${role}`, {
+                        method: 'POST'
+                    });
+                }
+                
+                // Remove roles
+                for (const role of rolesToRemove) {
+                    await fetch(`/api/users/${userId}/roles/${role}`, {
+                        method: 'DELETE'
+                    });
+                }
+                
+                return true;
+            }
+            
+            // Delete user
+            document.getElementById('deleteUserBtn').addEventListener('click', function() {
+                const username = document.getElementById('username').value;
+                
+                if (confirm(`Are you sure you want to delete user ${username}? This action cannot be undone.`)) {
+                    fetch(`/api/users/${username}`, {
+                        method: 'DELETE'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('User deleted successfully');
+                            window.location.href = '/users';
+                        } else {
+                            alert('Error deleting user: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('An error occurred: ' + error);
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

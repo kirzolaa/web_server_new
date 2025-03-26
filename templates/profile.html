@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile - AI Agency</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background-color: #6c757d;
+        }
+        .profile-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+        }
+        .profile-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+            gap: 1.5rem;
+        }
+        .profile-picture-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            overflow: hidden;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            cursor: pointer;
+        }
+        .profile-picture {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .profile-picture-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .profile-picture-container:hover .profile-picture-overlay {
+            opacity: 1;
+        }
+        .profile-info {
+            flex-grow: 1;
+        }
+        .profile-role {
+            display: inline-block;
+            background-color: #6c757d;
+            color: white;
+            padding: 0.3rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        .section-title {
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            color: #495057;
+        }
+        .form-label {
+            font-weight: 500;
+        }
+        .save-btn {
+            background-color: #198754;
+            border: none;
+        }
+        .save-btn:hover {
+            background-color: #157347;
+        }
+        .permissions-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .permissions-list li {
+            padding: 10px 15px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #6c757d;
+            transition: all 0.2s ease;
+        }
+        .alert-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            max-width: 300px;
+        }
+        .dropdown-submenu {
+            position: relative;
+        }
+        
+        .dropdown-submenu > .dropdown-menu {
+            top: 0;
+            left: 100%;
+            margin-top: -6px;
+            margin-left: -1px;
+            border-radius: 0 6px 6px 6px;
+        }
+        
+        .dropdown-submenu:hover > .dropdown-menu {
+            display: block;
+        }
+        
+        .dropdown-submenu > a:after {
+            display: block;
+            content: "";
+            float: right;
+            width: 0;
+            height: 0;
+            border-color: transparent;
+            border-style: solid;
+            border-width: 5px 0 5px 5px;
+            border-left-color: #ccc;
+            margin-top: 5px;
+            margin-right: -10px;
+        }
+        
+        .dropdown-submenu:hover > a:after {
+            border-left-color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">AI Agency</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/profile">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api_keys">API Keys</a>
+                    </li>
+                    {% if permissions and (permissions.manage_roles or permissions.all) %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/roles">Role Management</a>
+                    </li>
+                    {% endif %}
+                    {% if permissions and (permissions.manage_users or permissions.all) %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/users">User Management</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Generation</a>
+                        <ul class="dropdown-menu">
+                            <li class="dropdown-submenu">
+                                <a class="dropdown-item dropdown-toggle" href="#">Ideogram</a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="/generation/ideogram/describe">Describe</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/reframe">Reframe</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/upscale">Upscale</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/edit">Edit</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/remix">Remix</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/generate">Generate</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+                <button class="btn btn-outline-light" onclick="handleLogout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Alert Container -->
+    <div class="alert-container" id="alertContainer"></div>
+
+    <!-- Profile Container -->
+    <div class="profile-container">
+        <div class="profile-header">
+            <div class="profile-picture-container" onclick="triggerFileInput()">
+                <img src="/static/img/default-profile.png" alt="Profile Picture" class="profile-picture" id="profilePicture">
+                <div class="profile-picture-overlay">
+                    <i class="bi bi-camera fs-3"></i>
+                    <span>Change Picture</span>
+                </div>
+                <input type="file" id="profilePictureInput" style="display: none;" accept="image/*" onchange="handlePictureUpload(event)">
+            </div>
+            <div class="profile-info">
+                <h2 id="profileUsername">{{ user.username }}</h2>
+                <div class="profile-role">{{ user.role if user.role else 'Basic User' }}</div>
+                <div class="mt-3">
+                    <button class="btn btn-sm btn-outline-secondary me-2" onclick="openUsernameModal()">Change Username</button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="openPasswordModal()">Change Password</button>
+                </div>
+            </div>
+        </div>
+
+        <h4 class="section-title">Personal Information</h4>
+        <form id="profileForm" onsubmit="handleProfileUpdate(event)">
+            <div class="mb-3 row">
+                <label for="fullName" class="col-sm-3 col-form-label">Full Name</label>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="fullName" value="{{ user.full_name if user.full_name else '' }}">
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <label for="email" class="col-sm-3 col-form-label">Email</label>
+                <div class="col-sm-9">
+                    <input type="email" class="form-control" id="email" value="{{ user.email }}" readonly>
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <label for="bio" class="col-sm-3 col-form-label">Bio</label>
+                <div class="col-sm-9">
+                    <textarea class="form-control" id="bio" rows="3">{{ user.bio if user.bio else '' }}</textarea>
+                </div>
+            </div>
+            <div class="text-end">
+                <button type="submit" class="btn save-btn">Save Changes</button>
+            </div>
+        </form>
+
+        <h4 class="section-title mt-5">Permissions</h4>
+        <ul class="permissions-list">
+            {% if permissions %}
+                {% for perm, value in permissions.items() %}
+                    {% if value %}
+                    <li class="d-flex justify-content-between align-items-center">
+                        {{ perm.replace('_', ' ').title() }}
+                        <span class="badge bg-success rounded-pill"><i class="bi bi-check"></i></span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <li>No permissions assigned</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <!-- Username Change Modal -->
+    <div class="modal fade" id="usernameModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Change Username</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="newUsername" class="form-label">New Username</label>
+                        <input type="text" class="form-control" id="newUsername">
+                    </div>
+                    <div class="mb-3">
+                        <label for="usernamePassword" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="usernamePassword">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="handleUsernameChange()">Change Username</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Change Modal -->
+    <div class="modal fade" id="passwordModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Change Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" id="currentPassword">
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="password" class="form-control" id="newPassword">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                        <input type="password" class="form-control" id="confirmPassword">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="handlePasswordChange()">Change Password</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Setup dropdown submenu behavior
+            $('.dropdown-submenu > a').on('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                $(this).next('.dropdown-menu').toggle();
+            });
+            
+            // Close dropdowns when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.dropdown-submenu').length) {
+                    $('.dropdown-submenu .dropdown-menu').hide();
+                }
+            });
+        });
+        
+        // Initialize Bootstrap modals
+        const usernameModal = new bootstrap.Modal(document.getElementById('usernameModal'));
+        const passwordModal = new bootstrap.Modal(document.getElementById('passwordModal'));
+        
+        // Display profile picture if available
+        function displayProfilePicture(pictureData) {
+            const profilePicture = document.getElementById('profilePicture');
+            if (pictureData) {
+                profilePicture.src = pictureData;
+            } else {
+                profilePicture.src = '/static/img/default-profile.png';
+            }
+        }
+        
+        // Display profile picture on page load
+        displayProfilePicture('{{ user.profile_pic if user.profile_pic else "" }}');
+        
+        // Handle profile update form submission
+        function handleProfileUpdate(event) {
+            event.preventDefault();
+            
+            const fullName = document.getElementById('fullName').value;
+            const bio = document.getElementById('bio').value;
+            
+            fetch('/api/profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    full_name: fullName,
+                    bio: bio
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Profile updated successfully', 'success');
+                } else {
+                    showAlert('Failed to update profile: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                showAlert('An error occurred: ' + error, 'danger');
+            });
+        }
+        
+        // Trigger file input click when profile picture is clicked
+        function triggerFileInput() {
+            document.getElementById('profilePictureInput').click();
+        }
+        
+        // Handle profile picture upload
+        function handlePictureUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // Check file type
+            if (!file.type.match('image.*')) {
+                showAlert('Please select an image file', 'warning');
+                return;
+            }
+            
+            // Check file size (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                showAlert('Image size should be less than 5MB', 'warning');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // Display the image
+                displayProfilePicture(e.target.result);
+                
+                // Upload to server
+                fetch('/api/profile/picture', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        profile_pic: e.target.result
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAlert('Profile picture updated successfully', 'success');
+                    } else {
+                        showAlert('Failed to update profile picture: ' + data.message, 'danger');
+                    }
+                })
+                .catch(error => {
+                    showAlert('An error occurred: ' + error, 'danger');
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // Handle username change
+        function handleUsernameChange() {
+            const newUsername = document.getElementById('newUsername').value;
+            const password = document.getElementById('usernamePassword').value;
+            
+            if (!newUsername || !password) {
+                showAlert('Please fill in all fields', 'warning');
+                return;
+            }
+            
+            fetch('/api/profile/username', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    new_username: newUsername,
+                    password: password
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('profileUsername').textContent = newUsername;
+                    showAlert('Username updated successfully', 'success');
+                    usernameModal.hide();
+                } else {
+                    showAlert('Failed to update username: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                showAlert('An error occurred: ' + error, 'danger');
+            });
+        }
+        
+        // Handle password change
+        function handlePasswordChange() {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showAlert('Please fill in all fields', 'warning');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showAlert('New passwords do not match', 'warning');
+                return;
+            }
+            
+            fetch('/api/profile/password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('Password updated successfully', 'success');
+                    passwordModal.hide();
+                } else {
+                    showAlert('Failed to update password: ' + data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                showAlert('An error occurred: ' + error, 'danger');
+            });
+        }
+        
+        // Handle logout
+        function handleLogout() {
+            fetch('/logout', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                window.location.href = '/login';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+        
+        // Show alert message
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                alertDiv.classList.remove('show');
+                setTimeout(() => alertDiv.remove(), 300);
+            }, 5000);
+        }
+        
+        // Open username modal
+        function openUsernameModal() {
+            document.getElementById('newUsername').value = '';
+            document.getElementById('usernamePassword').value = '';
+            usernameModal.show();
+        }
+        
+        // Open password modal
+        function openPasswordModal() {
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            passwordModal.show();
+        }
+    </script>
+    
+    <footer style="text-align: center; margin-top: 40px; padding: 20px; color: #666; border-top: 1px solid #eee;">
+        <p>AI AGENCY Developer Team<br>
+        Bem tér Solutionz<br>
+        2024</p>
+    </footer>
+</body>
+</html>

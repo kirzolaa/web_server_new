@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AI Agency</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background-color: #6c757d;
+        }
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            height: 100%;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        .feature-card {
+            padding: 1.5rem;
+            text-align: center;
+        }
+        
+        /* Dashboard styles */
+        .dashboard-card {
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .card-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #6c757d;
+        }
+        
+        /* Dropdown submenu styles */
+        .dropdown-submenu {
+            position: relative;
+        }
+        
+        .dropdown-submenu > .dropdown-menu {
+            top: 0;
+            left: 100%;
+            margin-top: -6px;
+            margin-left: -1px;
+            border-radius: 0 6px 6px 6px;
+        }
+        
+        .dropdown-submenu:hover > .dropdown-menu {
+            display: block;
+        }
+        
+        .dropdown-submenu > a:after {
+            display: block;
+            content: "";
+            float: right;
+            width: 0;
+            height: 0;
+            border-color: transparent;
+            border-style: solid;
+            border-width: 5px 0 5px 5px;
+            border-left-color: #ccc;
+            margin-top: 5px;
+            margin-right: -10px;
+        }
+        
+        .dropdown-submenu:hover > a:after {
+            border-left-color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#" style="color: white; font-weight: bold;">AI Agency</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/profile">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/api_keys">API Keys</a>
+                    </li>
+                    {% if permissions and (permissions.manage_roles or permissions.all) %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/roles">Role Management</a>
+                    </li>
+                    {% endif %}
+                    {% if permissions and (permissions.manage_users or permissions.all) %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/users">User Management</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Generation</a>
+                        <ul class="dropdown-menu">
+                            <li class="dropdown-submenu">
+                                <a class="dropdown-item dropdown-toggle" href="#">Ideogram</a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="/generation/ideogram/describe">Describe</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/reframe">Reframe</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/upscale">Upscale</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/edit">Edit</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/remix">Remix</a></li>
+                                    <li><a class="dropdown-item" href="/generation/ideogram/generate">Generate</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    {% endif %}
+                </ul>
+                <button class="btn btn-outline-light" onclick="window.location.href='/logout'">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container dashboard-container">
+        <div class="row mb-4">
+            <div class="col">
+                <h1>Welcome, {{ user.username }}!</h1>
+                <p class="text-muted">AI Agency Dashboard</p>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="row mb-4">
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card">
+                    <div class="card-body">
+                        <i class="bi bi-person-circle card-icon text-primary"></i>
+                        <h5 class="card-title">Profile Management</h5>
+                        <p class="card-text">Update your personal information, change your password, and manage your profile picture.</p>
+                        <a href="/profile" class="btn btn-primary">Go to Profile</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card">
+                    <div class="card-body">
+                        <i class="bi bi-key-fill card-icon text-success"></i>
+                        <h5 class="card-title">API Keys</h5>
+                        <p class="card-text">Generate and manage API keys to access AI Agency services programmatically.</p>
+                        <a href="/api_keys" class="btn btn-success">Manage API Keys</a>
+                    </div>
+                </div>
+            </div>
+            {% if permissions and (permissions.manage_roles or permissions.all) %}
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card">
+                    <div class="card-body">
+                        <i class="bi bi-shield-lock card-icon text-danger"></i>
+                        <h5 class="card-title">Role Management</h5>
+                        <p class="card-text">Create and manage user roles and permissions for the AI Agency platform.</p>
+                        <a href="/roles" class="btn btn-danger">Manage Roles</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Your Permissions</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            {% if permissions %}
+                                {% for perm, value in permissions.items() %}
+                                    {% if value %}
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        {{ perm.replace('_', ' ').title() }}
+                                        <span class="badge bg-success rounded-pill"><i class="bi bi-check"></i></span>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                <li class="list-group-item">No permissions assigned</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Quick Links</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            <a href="/profile" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                Edit Profile
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                            <a href="/api_keys" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                Manage API Keys
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                            {% if permissions and (permissions.manage_roles or permissions.all) %}
+                            <a href="/roles" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                Manage Roles
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                            {% endif %}
+                            <a href="/logout" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                Logout
+                                <i class="bi bi-box-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light py-4 mt-5">
+        <div class="container text-center">
+            <p class="text-muted mb-0">AI AGENCY Developer Team<br>Bem tér Solutionz</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Setup dropdown submenu behavior
+            $('.dropdown-submenu > a').on('click', function(e) {
+                e.stopPropagation();
+                e.preventDefault();
+                $(this).next('.dropdown-menu').toggle();
+            });
+            
+            // Close dropdowns when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.dropdown-submenu').length) {
+                    $('.dropdown-submenu .dropdown-menu').hide();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
