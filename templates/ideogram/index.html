@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ideogram Generation - AI Agency</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .navbar { background-color: #1a1a1a; }
+        .generation-container { max-width: 1200px; margin: 40px auto; padding: 20px; }
+        .section-title { margin-bottom: 30px; color: #333; }
+        .generated-image-container { max-width: 512px; margin: 20px auto; }
+        .generated-image-container img { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .history-item { padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .history-image { width: 100%; height: 200px; object-fit: cover; border-radius: 4px; margin-bottom: 10px; cursor: pointer; }
+        .history-details { font-size: 0.9em; }
+    /* Modal styles */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); }
+        .modal-content { margin: auto; display: block; max-width: 90%; max-height: 90vh; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .close { position: absolute; right: 25px; top: 15px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer; }
+        button:hover {
+                background-color: #1a4c69;
+            }
+
+            #generatedImage img {
+                max-width: 100%;
+                height: auto;
+                margin-top: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+
+            .history-item {
+                margin-bottom: 20px;
+                padding: 15px;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+            }
+
+            .history-image {
+                max-width: 100%;
+                height: auto;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">AI Agency</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/website_web">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/website_profile">Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/website_users">Users</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/ideogram">Ideogram</a>
+                    </li>
+                </ul>
+                <button id="logoutBtn" class="btn btn-outline-light">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container generation-container">
+        <div id="alertArea"></div>
+
+        <h2 class="section-title">Ideogram Image Generation</h2>
+
+        <form id="generationForm" onsubmit="generateImage(event)">
+            <div class="mb-3">
+                <label for="prompt" class="form-label">Prompt</label>
+                <textarea class="form-control" id="prompt" name="prompt" rows="3" required 
+                    placeholder="Describe what you want to generate..."></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label for="style" class="form-label">Style</label>
+                <select class="form-control" id="style" name="style">
+                    <option value="DEFAULT">Default</option>
+                    <option value="CINEMATIC">Cinematic</option>
+                    <option value="COMIC_BOOK">Comic Book</option>
+                    <option value="DIGITAL_ART">Digital Art</option>
+                    <option value="FANTASY_ART">Fantasy Art</option>
+                    <option value="ISOMETRIC">Isometric</option>
+                    <option value="LINE_ART">Line Art</option>
+                    <option value="PHOTOGRAPHIC">Photographic</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="aspect_ratio" class="form-label">Aspect Ratio</label>
+                <select class="form-control" id="aspect_ratio" name="aspect_ratio">
+                    <option value="ASPECT_1_1">1:1 Square</option>
+                    <option value="ASPECT_16_9">16:9 Landscape</option>
+                    <option value="ASPECT_9_16">9:16 Portrait</option>
+                    <option value="ASPECT_4_3">4:3 Standard</option>
+                    <option value="ASPECT_3_4">3:4 Portrait</option>
+                    <option value="ASPECT_2_1">2:1 Panorama</option>
+                    <option value="ASPECT_1_2">1:2 Tall</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="model" class="form-label">Model Version</label>
+                <select class="form-control" id="model" name="model">
+                    <option value="V_2">V2 (Latest)</option>
+                    <option value="V_1">V1</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Generate Image</button>
+        </form>
+
+        <div id="generationResult" class="mt-4" style="display: none;">
+            <h4>Generated Image:</h4>
+            <div id="generatedImage" class="generated-image-container"></div>
+            <div id="generationDetails" class="mt-3">
+                <h4>Generation Details:</h4>
+                <pre id="generationPayload" class="bg-light p-3 rounded"></pre>
+            </div>
+        </div>
+
+        <h3 class="section-title mt-5">Generation History</h3>
+        <div id="historyContainer" class="history-grid"></div>
+        <div id="historyContainer"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuthentication();
+            loadHistory();
+        });
+
+        function checkAuthentication() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/';
+                return;
+            }
+        }
+
+        async function generateImage(event) {
+            event.preventDefault();
+            const form = event.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Generating...';
+
+            try {
+                const formData = new FormData(form);
+                const prompt = formData.get('prompt');
+                const style = formData.get('style');
+                const aspect_ratio = formData.get('aspect_ratio');
+
+                const response = await fetch('/api/generate/ideogram', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ prompt, style, aspect_ratio })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showAlert('Image generated successfully!', 'success');
+                    const generationResult = document.getElementById('generationResult');
+                    generationResult.style.display = 'block';
+                    document.getElementById('generatedImage').innerHTML = `
+                        <img src="${result.image}" alt="Generated Image" class="img-fluid">
+                    `;
+                    loadHistory();
+                } else {
+                    showAlert(result.error || 'Generation failed', 'danger');
+                }
+            } catch (error) {
+                showAlert('Error connecting to server', 'danger');
+                console.error('Error:', error);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertArea = document.getElementById('alertArea');
+            alertArea.innerHTML = `
+                <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+
+        async function loadHistory() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('/api/generations/history', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const history = await response.json();
+
+                const historyHtml = history.map(item => {
+                    let itemData;
+                    try {
+                        itemData = JSON.parse(item.payload);
+                    } catch (e) {
+                        console.error('Failed to parse history item:', e);
+                        return '';
+                    }
+
+                    return `
+                    <div class="history-item">
+                        <p><strong>Created:</strong> ${item.created_at || new Date().toLocaleString()}</p>
+                        <p><strong>Prompt:</strong> ${itemData.data[0].prompt}</p>
+                        <p><strong>Style:</strong> ${itemData.data[0].style_type || 'Default'}</p>
+                        <p><strong>Image URL:</strong> <a href="${itemData.url || itemData.image}" target="_blank">${itemData.url || itemData.image}</a></p>
+                    </div>
+                `}).join('');
+
+                document.getElementById('historyContainer').innerHTML = historyHtml;
+            } catch (error) {
+                console.error('Failed to load history:', error);
+            }
+        }
+
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            localStorage.removeItem('token');
+            window.location.href = '/';
+        });
+    </script>
+
+    <!-- Modal -->
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showFullImage(src) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = "block";
+            modalImg.src = src;
+        }
+
+        document.querySelector('.close').onclick = function() {
+            document.getElementById('imageModal').style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('imageModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
+</body>
+</html>
